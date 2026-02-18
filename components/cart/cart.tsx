@@ -6,22 +6,30 @@ import { Button } from '@/components/ui/button'
 import { X, Minus, Plus, ShoppingBag, Mail, ArrowRight } from 'lucide-react'
 import Image from 'next/image'
 import { useState } from 'react'
-import { CheckoutDialog } from './checkout-dialog'
-import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import * as Dialog from '@radix-ui/react-dialog'
+import dynamic from 'next/dynamic'
 
-export function Cart() {
+// Carga diferida del modal de Checkout para ahorrar KB de JavaScript inicial
+const CheckoutDialog = dynamic(() => 
+  import('./checkout-dialog').then((mod) => mod.CheckoutDialog), 
+  { ssr: false }
+)
+
+interface CartProps {
+  isEmailVerified?: boolean;
+  userEmail?: string | null;
+}
+
+export function Cart({ isEmailVerified = false, userEmail }: CartProps) {
   const { items, isOpen, toggleCart, updateQuantity, removeItem, getTotalPrice } = useCartStore()
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [verifyPromptOpen, setVerifyPromptOpen] = useState(false)
-  const { data: session } = useSession()
   const router = useRouter()
   const totalPrice = getTotalPrice()
 
   const handleFinishPurchase = () => {
-    // Block checkout if email not verified
-    if (!session?.user?.emailVerified) {
+    if (!isEmailVerified) {
       setVerifyPromptOpen(true)
       return
     }
@@ -140,7 +148,7 @@ export function Cart() {
               {/* Email display */}
               <div className="bg-background/60 rounded-xl p-4 border border-border">
                 <p className="text-xs text-gray-400 mb-1">Your email</p>
-                <p className="font-semibold text-white truncate">{session?.user?.email}</p>
+                <p className="font-semibold text-white truncate">{userEmail || 'Unknown Email'}</p>
               </div>
 
               {/* Buttons */}
@@ -161,7 +169,10 @@ export function Cart() {
         </Dialog.Portal>
       </Dialog.Root>
 
-      <CheckoutDialog open={checkoutOpen} onOpenChange={setCheckoutOpen} />
+      {/* Solo se monta y descarga en el cliente si checkoutOpen es true */}
+      {checkoutOpen && (
+        <CheckoutDialog open={checkoutOpen} onOpenChange={setCheckoutOpen} />
+      )}
     </>
   )
 }
