@@ -6,23 +6,21 @@ import { useCartStore } from '@/lib/store'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/use-toast'
 import { ShoppingCart, Check, LogIn } from 'lucide-react'
-import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 
 interface AddToCartButtonProps {
   product: Product
+  isAuthenticated: boolean
 }
 
-export function AddToCartButton({ product }: AddToCartButtonProps) {
+export function AddToCartButton({ product, isAuthenticated }: AddToCartButtonProps) {
   const addItem = useCartStore((state) => state.addItem)
   const { toast } = useToast()
   const [added, setAdded] = useState(false)
-  const { data: session } = useSession()
   const router = useRouter()
 
   const handleAddToCart = () => {
-    // Redirect to login if not authenticated
-    if (!session) {
+    if (!isAuthenticated) {
       router.push(`/auth/login?callbackUrl=/products/${product.id}`)
       return
     }
@@ -54,7 +52,7 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
     setTimeout(() => setAdded(false), 2000)
   }
 
-  if (!session) {
+  if (!isAuthenticated) {
     return (
       <Button
         onClick={handleAddToCart}
